@@ -16,34 +16,16 @@
           devshell = pkgs.mkShell {
             buildInputs = with pkgs; [
               nodejs
-              nodePackages.node2nix
-
+              nodePackages.yarn
             ];
-                        shellHook = ''
-              export NODE_OPTIONS=--openssl-legacy-provider
-              ln -s ${nodeDependencies}/lib/node_modules ./node_modules
-              export PATH="${nodeDependencies}/bin:$PATH"
-            '';
           };
-          
-          nodeDependencies = (pkgs.callPackage ./default.nix { }).nodeDependencies;
 
-          app = pkgs.stdenv.mkDerivation {
-            name = "my-app";
+          app = pkgs.mkYarnPackage rec {
+            name = "better-sqlite3";
             src = ./.;
-            buildInputs = [ 
-              pkgs.nodejs 
-              pkgs.nodePackages.node-gyp
-            ];
-            buildPhase = ''
-              ln -s ${nodeDependencies}/lib/node_modules ./node_modules
-              export PATH="${nodeDependencies}/bin:$PATH"
-              # Build the distribution bundle in "dist"
-              npm run build
-
-            '';
-            NODE_OPTIONS="--openssl-legacy-provider";
           };
+
+          
 
 
         in
