@@ -1,0 +1,55 @@
+{
+  description = "basic flake-utils";
+
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+
+
+  outputs = { self, nixpkgs, flake-utils, ... }:
+    (flake-utils.lib.eachDefaultSystem
+      (system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+
+          };
+          devshell = pkgs.mkShell {
+            buildInputs = with pkgs; [
+              nodejs
+              nodePackages.node2nix
+
+            ];
+                        shellHook = ''
+              export NODE_OPTIONS=--openssl-legacy-provider
+              ln -s ${nodeDependencies}/lib/node_modules ./node_modules
+              export PATH="${nodeDependencies}/bin:$PATH"
+            '';
+          };
+          
+          nodeDependencies = (pkgs.callPackage ./default.nix { }).nodeDependencies;
+
+          app = pkgs.stdenv.mkDerivation {
+            name = "my-app";
+            src = ./.;
+            buildInputs = [ 
+              pkgs.nodejs 
+              pkgs.nodePackages.node-gyp
+            ];
+            buildPhase = ''
+              ln -s ${nodeDependencies}/lib/node_modules ./node_modules
+              export PATH="${nodeDependencies}/bin:$PATH"
+              # Build the distribution bundle in "dist"
+              npm run build
+
+            '';
+            NODE_OPTIONS="--openssl-legacy-provider";
+          };
+
+
+        in
+        {
+          devShells.default = devshell;
+          packages.default = app;
+        })
+    );
+}
